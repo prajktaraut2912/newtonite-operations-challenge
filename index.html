@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newtonite Operations</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 30px;
+      color: #222;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+    }
+
+    h1 { color: #243b64; }
+
+    .panel {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+
+    input, select, button {
+      padding: 10px;
+      margin: 5px 3px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      background: #2457a7;
+      color: white;
+      cursor: pointer;
+    }
+
+    .task {
+      border-bottom: 1px solid #ddd;
+      padding: 12px 0;
+    }
+
+    .history {
+      color: #555;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Newtonite Operations Challenge</h1>
+    <p>Manage operational tasks, priorities and ownership.</p>
+
+    <div class="panel">
+      <h2>Create a Task</h2>
+
+      <input id="title" placeholder="Task title">
+      <input id="owner" placeholder="Assigned owner">
+
+      <select id="priority">
+        <option>Low</option>
+        <option selected>Medium</option>
+        <option>High</option>
+      </select>
+
+      <button onclick="addTask()">Add Task</button>
+    </div>
+
+    <div class="panel">
+      <h2>Task List</h2>
+      <div id="tasks">No tasks created yet.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Activity History</h2>
+      <div id="history">No activity yet.</div>
+    </div>
+  </div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem("tasks") || "[]");
+    let history = JSON.parse(localStorage.getItem("history") || "[]");
+
+    function save() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      localStorage.setItem("history", JSON.stringify(history));
+    }
+
+    function logActivity(message) {
+      history.unshift(new Date().toLocaleString() + " — " + message);
+      save();
+      renderHistory();
+    }
+
+    function addTask() {
+      const title = document.getElementById("title").value.trim();
+      const owner = document.getElementById("owner").value.trim();
+      const priority = document.getElementById("priority").value;
+
+      if (!title || !owner) {
+        alert("Please enter both a task title and an owner.");
+        return;
+      }
+
+      tasks.push({
+        id: Date.now(),
+        title,
+        owner,
+        priority,
+        status: "Pending"
+      });
+
+      logActivity("Created task: " + title);
+      save();
+      renderTasks();
+
+      document.getElementById("title").value = "";
+      document.getElementById("owner").value = "";
+    }
+
+    function updateStatus(id, status) {
+      const task = tasks.find(task => task.id === id);
+      if (!task) return;
+
+      task.status = status;
+      logActivity("Updated " + task.title + " to " + status);
+      save();
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const container = document.getElementById("tasks");
+
+      if (!tasks.length) {
+        container.textContent = "No tasks created yet.";
+        return;
+      }
+
+      container.innerHTML = "";
+
+      tasks.forEach(task => {
+        const item = document.createElement("div");
+        item.className = "task";
+
+        const title = document.createElement("strong");
+        title.textContent = task.title;
+
+        const details = document.createElement("p");
+        details.textContent =
+          "Owner: " + task.owner +
+          " | Priority: " + task.priority +
+          " | Status: " + task.status;
+
+        const status = document.createElement("select");
+
+        ["Pending", "In Progress", "Completed"].forEach(value => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          status.appendChild(option);
+        });
+
+        status.value = task.status;
+        status.addEventListener("change", () =>
+          updateStatus(task.id, status.value)
+        );
+
+        item.append(title, details, status);
+        container.appendChild(item);
+      });
+    }
+
+    function renderHistory() {
+      const container = document.getElementById("history");
+      container.replaceChildren();
+
+      history.forEach(entry => {
+        const item = document.createElement("p");
+        item.className = "history";
+        item.textContent = entry;
+        container.appendChild(item);
+      });
+
+      if (!history.length) {
+        container.textContent = "No activity yet.";
+      }
+    }
+
+    renderTasks();
+    renderHistory();
+  </script>
+</body>
+</html>
