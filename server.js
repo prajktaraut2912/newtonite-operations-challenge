@@ -240,4 +240,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, tasks, activities, users };
+module.exports = { app, tasks, activities, users, idempotencyKeys };
