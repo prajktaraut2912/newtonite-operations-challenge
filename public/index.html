@@ -209,10 +209,11 @@
         actions.className = "task-actions";
 
         const statusSelect = document.createElement("select");
-        ["open", "in_progress", "blocked", "done"].forEach(status => {
+        
+["Open", "In Progress", "Blocked", "Completed", "Cancelled"].forEach(status => {
           const option = document.createElement("option");
           option.value = status;
-          option.textContent = status.replace("_", " ");
+          option.textContent = status;
           option.selected = status === task.status;
           statusSelect.appendChild(option);
         });
