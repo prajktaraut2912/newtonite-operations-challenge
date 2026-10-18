@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const app = express();
 app.use(helmet());
 app.use(express.json());
-
+app.use(express.static("public"));
 const PORT = process.env.PORT || 3000;
 
 // Development-only data.
