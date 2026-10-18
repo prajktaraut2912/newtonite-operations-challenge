@@ -255,7 +255,11 @@
         await api("/api/tasks", {
           method: "POST",
           headers: { "Idempotency-Key": crypto.randomUUID() },
-          body: JSON.stringify({ title, ownerId, priority })
+          body: JSON.stringify({
+  title,
+  description: "",
+  priority: priority.charAt(0).toUpperCase() + priority.slice(1)
+})
         });
 
         event.target.reset();
