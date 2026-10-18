@@ -3,10 +3,11 @@ const request = require("supertest");
 const { app, tasks, activities } = require("./server");
 
 describe("Newtonite Operations API", () => {
-  beforeEach(() => {
-    tasks.length = 0;
-    activities.length = 0;
-  });
+ beforeEach(() => {
+  tasks.length = 0;
+  activities.length = 0;
+  idempotencyKeys.clear();
+});
 
   test("rejects unauthenticated task requests", async () => {
     const response = await request(app).get("/api/tasks");
