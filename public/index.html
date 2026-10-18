@@ -243,7 +243,7 @@
             const data = await api(
               `/api/tasks/${encodeURIComponent(task.id)}/activity`
             );
-            const events = data.activities || data.activity || [];
+            const events = data.items || [];
             const lines = events.map(event =>
               `${event.action || event.type || "Update"}: ${
                 event.details ? JSON.stringify(event.details) :
