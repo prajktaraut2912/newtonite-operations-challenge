@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newtonite Operations</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f5f9;
+      color: #1f2937;
+    }
+    header {
+      background: #172554;
+      color: white;
+      padding: 24px;
+    }
+    header h1 { margin: 0 0 8px; }
+    main { max-width: 1100px; margin: 28px auto; padding: 0 18px; }
+    .panel {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px #0000000c;
+    }
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      font: inherit;
+    }
+    button {
+      background: #1d4ed8;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover { background: #1e40af; }
+    .task {
+      border: 1px solid #e2e8f0;
+      border-radius: 9px;
+      padding: 15px;
+      margin-top: 12px;
+    }
+    .task h3 { margin: 0 0 8px; }
+    .muted { color: #64748b; font-size: 14px; }
+    .task-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    #message { margin-top: 12px; }
+    @media (max-width: 500px) {
+      .task-actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Newtonite Operations</h1>
+    <p>Manage work, priorities, ownership, and progress.</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Create a work item</h2>
+      <form id="task-form">
+        <div class="fields">
+          <input id="title" placeholder="Work item title" required maxlength="200">
+          <input id="owner" placeholder="Owner user ID (u1 or u2)" value="u2" required>
+          <select id="priority">
+            <option value="medium">Medium priority</option>
+            <option value="low">Low priority</option>
+            <option value="high">High priority</option>
+            <option value="critical">Critical priority</option>
+          </select>
+          <button type="submit">Create work item</button>
+        </div>
+      </form>
+      <p id="message" role="status" class="muted"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Work items</h2>
+      <div class="fields">
+        <input id="search" placeholder="Search work items">
+        <select id="status-filter">
+          <option value="">All statuses</option>
+          <option value="open">Open</option>
+          <option value="in_progress">In progress</option>
+          <option value="blocked">Blocked</option>
+          <option value="done">Done</option>
+        </select>
+        <select id="priority-filter">
+          <option value="">All priorities</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="critical">Critical</option>
+        </select>
+        <button type="button" id="refresh">Refresh work items</button>
+      </div>
+      <div id="tasks"></div>
+    </section>
+  </main>
+
+  <script>
+    const tasksElement = document.getElementById("tasks");
+    const messageElement = document.getElementById("message");
+
+    // Development demo identity. Replace with real authentication before production.
+    const demoUser = "u1";
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          "x-demo-user": demoUser,
+          ...(options.headers || {})
+        }
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || `Request failed (${response.status})`);
+      }
+      return data;
+    }
+
+    function showMessage(text) {
+      messageElement.textContent = text;
+    }
+
+    async function loadTasks() {
+      tasksElement.textContent = "Loading work items…";
+
+      try {
+        const params = new URLSearchParams();
+        const search = document.getElementById("search").value.trim();
+        const status = document.getElementById("status-filter").value;
+        const priority = document.getElementById("priority-filter").value;
+
+        if (search) params.set("search", search);
+        if (status) params.set("status", status);
+        if (priority) params.set("priority", priority);
+
+        const data = await api(`/api/tasks?${params.toString()}`);
+        renderTasks(data.tasks || []);
+      } catch (error) {
+        tasksElement.textContent = "Could not load work items: " + error.message;
+      }
+    }
+
+    function renderTasks(tasks) {
+      tasksElement.replaceChildren();
+
+      if (tasks.length === 0) {
+        tasksElement.textContent = "No work items found. Create one above.";
+        return;
+      }
+
+      tasks.forEach(task => {
+        const card = document.createElement("article");
+        card.className = "task";
+
+        const title = document.createElement("h3");
+        title.textContent = task.title;
+
+        const details = document.createElement("p");
+        details.className = "muted";
+        details.textContent =
+          `Status: ${task.status} | Priority: ${task.priority} | Owner: ${task.ownerId}`;
+
+        const version = document.createElement("p");
+        version.className = "muted";
+        version.textContent = `Version: ${task.version}`;
+
+        const actions = document.createElement("div");
+        actions.className = "task-actions";
+
+        const statusSelect = document.createElement("select");
+        ["open", "in_progress", "blocked", "done"].forEach(status => {
+          const option = document.createElement("option");
+          option.value = status;
+          option.textContent = status.replace("_", " ");
+          option.selected = status === task.status;
+          statusSelect.appendChild(option);
+        });
+
+        const updateButton = document.createElement("button");
+        updateButton.type = "button";
+        updateButton.textContent = "Update status";
+        updateButton.addEventListener("click", async () => {
+          try {
+            await api(`/api/tasks/${encodeURIComponent(task.id)}`, {
+              method: "PATCH",
+              headers: { "If-Match": String(task.version) },
+              body: JSON.stringify({ status: statusSelect.value })
+            });
+            showMessage("Work item updated successfully.");
+            await loadTasks();
+          } catch (error) {
+            showMessage("Update failed: " + error.message);
+          }
+        });
+
+        const historyButton = document.createElement("button");
+        historyButton.type = "button";
+        historyButton.textContent = "View activity";
+        historyButton.addEventListener("click", async () => {
+          try {
+            const data = await api(
+              `/api/tasks/${encodeURIComponent(task.id)}/activity`
+            );
+            const events = data.activities || data.activity || [];
+            const lines = events.map(event =>
+              `${event.action || event.type || "Update"}: ${
+                event.details ? JSON.stringify(event.details) :
+                event.changes ? JSON.stringify(event.changes) : ""
+              }`
+            );
+            alert(lines.length ? lines.join("\n") : "No activity recorded.");
+          } catch (error) {
+            showMessage("Could not load activity: " + error.message);
+          }
+        });
+
+        actions.append(statusSelect, updateButton, historyButton);
+        card.append(title, details, version, actions);
+        tasksElement.appendChild(card);
+      });
+    }
+
+    document.getElementById("task-form").addEventListener("submit", async event => {
+      event.preventDefault();
+
+      try {
+        const title = document.getElementById("title").value.trim();
+        const ownerId = document.getElementById("owner").value.trim();
+        const priority = document.getElementById("priority").value;
+
+        await api("/api/tasks", {
+          method: "POST",
+          headers: { "Idempotency-Key": crypto.randomUUID() },
+          body: JSON.stringify({ title, ownerId, priority })
+        });
+
+        event.target.reset();
+        document.getElementById("owner").value = "u2";
+        showMessage("Work item created successfully.");
+        await loadTasks();
+      } catch (error) {
+        showMessage("Creation failed: " + error.message);
+      }
+    });
+
+    document.getElementById("refresh").addEventListener("click", loadTasks);
+    document.getElementById("search").addEventListener("input", loadTasks);
+    document.getElementById("status-filter").addEventListener("change", loadTasks);
+    document.getElementById("priority-filter").addEventListener("change", loadTasks);
+
+    loadTasks();
+  </script>
+</body>
+</html>
