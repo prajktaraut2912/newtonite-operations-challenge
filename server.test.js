@@ -1,6 +1,6 @@
 
 const request = require("supertest");
-const { app, tasks, activities } = require("./server");
+const { app, tasks, activities, idempotencyKeys } = require("./server");
 
 describe("Newtonite Operations API", () => {
  beforeEach(() => {
